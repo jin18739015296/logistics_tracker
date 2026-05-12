@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.logistics.api.mapper.GoodsTypeMapper">
+
+    <resultMap id="BaseResultMap" type="com.logistics.api.model.GoodsType">
+        <id property="id" column="id"/>
+        <result property="code" column="code"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="icon" column="icon"/>
+        <result property="sortOrder" column="sort_order"/>
+        <result property="isActive" column="is_active"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, code, name, description, icon, sort_order, is_active, create_time
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM goods_types WHERE id = #{id}
+    </select>
+
+    <select id="selectByCode" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM goods_types WHERE code = #{code}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM goods_types ORDER BY sort_order, id
+    </select>
+
+    <select id="selectActive" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM goods_types WHERE is_active = 1 ORDER BY sort_order, id
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO goods_types (code, name, description, icon, sort_order, is_active, create_time)
+        VALUES (#{code}, #{name}, #{description}, #{icon}, #{sortOrder}, #{isActive}, NOW())
+    </insert>
+
+    <update id="updateById">
+        UPDATE goods_types
+        SET code = #{code},
+            name = #{name},
+            description = #{description},
+            icon = #{icon},
+            sort_order = #{sortOrder},
+            is_active = #{isActive}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM goods_types WHERE id = #{id}
+    </delete>
+
+    <update id="updateStatus">
+        UPDATE goods_types SET is_active = #{isActive} WHERE id = #{id}
+    </update>
+
+</mapper>

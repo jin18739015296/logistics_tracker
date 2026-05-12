@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.logistics.api.mapper.CourierStatusMapper">
+
+    <resultMap id="BaseResultMap" type="com.logistics.api.model.CourierStatus">
+        <id property="id" column="id"/>
+        <result property="courierId" column="courier_id"/>
+        <result property="status" column="status"/>
+        <result property="currentLat" column="current_lat"/>
+        <result property="currentLng" column="current_lng"/>
+        <result property="currentOrderCount" column="current_order_count"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, courier_id, status, current_lat, current_lng, current_order_count, update_time
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM courier_status WHERE courier_id = #{courierId}
+    </select>
+
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM courier_status WHERE status = #{status}
+    </select>
+
+    <select id="countByStatuses" resultType="long">
+        SELECT COUNT(*) FROM courier_status
+        WHERE status IN
+        <foreach collection="statuses" item="st" open="(" separator="," close=")">
+            #{st}
+        </foreach>
+    </select>
+
+    <insert id="insert">
+        INSERT INTO courier_status (courier_id, status, current_lat, current_lng, current_order_count, update_time)
+        VALUES (#{courierId}, #{status}, #{currentLat}, #{currentLng}, #{currentOrderCount}, NOW())
+    </insert>
+
+    <update id="update">
+        UPDATE courier_status
+        SET status = #{status},
+            current_lat = #{currentLat},
+            current_lng = #{currentLng},
+            current_order_count = #{currentOrderCount},
+            update_time = NOW()
+        WHERE courier_id = #{courierId}
+    </update>
+
+    <update id="updateLocation">
+        UPDATE courier_status
+        SET current_lat = #{lat}, current_lng = #{lng}, update_time = NOW()
+        WHERE courier_id = #{courierId}
+    </update>
+
+    <update id="updateOrderCount">
+        UPDATE courier_status
+        SET current_order_count = #{count}, update_time = NOW()
+        WHERE courier_id = #{courierId}
+    </update>
+
+    <update id="updateOfflineState">
+        UPDATE courier_status
+        SET status = #{status},
+            current_order_count = #{orderCount},
+            update_time = NOW()
+        WHERE courier_id = #{courierId}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM courier_status WHERE courier_id = #{courierId}
+    </delete>
+
+</mapper>

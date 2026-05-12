@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.logistics.api.mapper.PaymentRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.logistics.api.model.PaymentRecord">
+        <id column="id" property="id"/>
+        <result column="payment_no" property="paymentNo"/>
+        <result column="order_id" property="orderId"/>
+        <result column="pay_method" property="payMethod"/>
+        <result column="amount" property="amount"/>
+        <result column="status" property="status"/>
+        <result column="pay_channel" property="payChannel"/>
+        <result column="transaction_id" property="transactionId"/>
+        <result column="pay_time" property="payTime"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, payment_no, order_id, pay_method, amount, status, pay_channel, 
+        transaction_id, pay_time, create_time
+    </sql>
+
+    <insert id="insert" parameterType="com.logistics.api.model.PaymentRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO payment_records (payment_no, order_id, pay_method, amount, status, pay_channel, transaction_id, pay_time, create_time)
+        VALUES (#{paymentNo}, #{orderId}, #{payMethod}, #{amount}, #{status}, #{payChannel}, #{transactionId}, #{payTime}, #{createTime})
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM payment_records
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByOrderId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM payment_records
+        WHERE order_id = #{orderId}
+        ORDER BY create_time DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectByPaymentNo" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM payment_records
+        WHERE payment_no = #{paymentNo}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE payment_records
+        SET status = #{status},
+            transaction_id = #{transactionId},
+            pay_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+</mapper>

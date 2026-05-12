@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.logistics.api.mapper.DistancePricingRuleMapper">
+
+    <resultMap id="BaseResultMap" type="com.logistics.api.model.DistancePricingRule">
+        <id property="id" column="id"/>
+        <result property="distanceMin" column="distance_min"/>
+        <result property="distanceMax" column="distance_max"/>
+        <result property="baseFee" column="base_fee"/>
+        <result property="pricePerKm" column="price_per_km"/>
+        <result property="isActive" column="is_active"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, distance_min, distance_max, base_fee, price_per_km, is_active, create_time, update_time
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM distance_pricing_rules WHERE id = #{id}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM distance_pricing_rules ORDER BY distance_min ASC
+    </select>
+
+    <select id="selectActive" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM distance_pricing_rules WHERE is_active = 1 ORDER BY distance_min ASC
+    </select>
+
+    <select id="selectByDistance" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM distance_pricing_rules 
+        WHERE is_active = 1 AND distance_min &lt;= #{distance} AND distance_max >= #{distance}
+        LIMIT 1
+    </select>
+
+</mapper>

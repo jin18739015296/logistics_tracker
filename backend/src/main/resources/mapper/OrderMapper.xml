@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.logistics.api.mapper.OrderMapper">
+
+    <resultMap id="BaseResultMap" type="com.logistics.api.model.Order">
+        <id property="id" column="id"/>
+        <result property="orderNo" column="order_no"/>
+        <result property="userId" column="user_id"/>
+        <result property="courierId" column="courier_id"/>
+        <result property="goodsTypeId" column="goods_type_id"/>
+        <result property="goodsDescription" column="goods_description"/>
+        <result property="goodsWeight" column="goods_weight"/>
+        <result property="status" column="status"/>
+        <result property="orderType" column="order_type"/>
+        <result property="totalAmount" column="total_amount"/>
+        <result property="actualAmount" column="actual_amount"/>
+        <result property="payType" column="pay_type"/>
+        <result property="dispatchType" column="dispatch_type"/>
+        <result property="dispatchTime" column="dispatch_time"/>
+        <result property="isException" column="is_exception"/>
+        <result property="exceptionType" column="exception_type"/>
+        <result property="cancelReason" column="cancel_reason"/>
+        <result property="cancelTime" column="cancel_time"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, order_no, user_id, courier_id,
+        goods_type_id, goods_description, goods_weight,
+        status, order_type, total_amount, actual_amount, pay_type,
+        dispatch_type, dispatch_time, is_exception, exception_type,
+        cancel_reason, cancel_time, create_time, update_time
+    </sql>
+
+    <!-- 与 Base_Column_List 相同列，带 orders 表别名（JOIN 时避免 id 等列歧义） -->
+    <sql id="Base_Column_List_O">
+        o.id, o.order_no, o.user_id, o.courier_id,
+        o.goods_type_id, o.goods_description, o.goods_weight,
+        o.status, o.order_type, o.total_amount, o.actual_amount, o.pay_type,
+        o.dispatch_type, o.dispatch_time, o.is_exception, o.exception_type,
+        o.cancel_reason, o.cancel_time, o.create_time, o.update_time
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM orders WHERE id = #{id}
+    </select>
+
+    <select id="selectByIds" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM orders
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="selectByOrderNo" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM orders WHERE order_no = #{orderNo}
+    </select>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM orders WHERE user_id = #{userId} ORDER BY create_time DESC
+    </select>
+
+    <select id="selectByReceiverNormalizedPhone" resultMap="BaseResultMap">
+        SELECT DISTINCT <include refid="Base_Column_List_O"/>
+        FROM orders o
+        INNER JOIN order_addresses a ON o.id = a.order_id AND a.type = 'receiver'
+        WHERE REPLACE(REPLACE(TRIM(IFNULL(a.contact_phone, '')), ' ', ''), '-', '') = #{normalizedPhone}
+        ORDER BY o.create_time DESC
+    </select>
+
+    <select id="selectByCourierId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM orders WHERE courier_id = #{courierId} ORDER BY create_time DESC
+    </select>
+
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM orders WHERE status = #{status} ORDER BY create_time DESC
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM orders
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectPendingDispatch" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM orders 
+        WHERE status = 'pending' AND courier_id IS NULL 
+        ORDER BY create_time ASC
+    </select>
+
+    <select id="selectExceptionOrders" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM orders 
+        WHERE is_exception = 1 OR `status` = 'exception'
+        ORDER BY update_time DESC
+    </select>
+
+    <select id="selectByDateRange" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM orders 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime}
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="countSearchAdmin" resultType="long">
+        SELECT COUNT(*) FROM orders
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (order_no LIKE CONCAT('%', #{keyword}, '%')
+                OR IFNULL(goods_description, '') LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <select id="searchAdminPaged" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM orders
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (order_no LIKE CONCAT('%', #{keyword}, '%')
+                OR IFNULL(goods_description, '') LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 统计：聚合查询，避免全表 selectAll 拉入内存（索引建议：create_time, update_time, status） -->
+    <select id="countTotalOrders" resultType="long">
+        SELECT COUNT(*) FROM orders
+    </select>
+
+    <select id="selectOrderCountGroupByStatus" resultType="map">
+        SELECT `status` AS s, COUNT(*) AS c FROM orders GROUP BY `status`
+    </select>
+
+    <select id="sumActualAmountByStatus" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(actual_amount), 0) FROM orders WHERE `status` = #{status}
+    </select>
+
+    <select id="countByCreateTimeBetween" resultType="long">
+        SELECT COUNT(*) FROM orders
+        WHERE create_time &gt;= #{startTime} AND create_time &lt; #{endTime}
+    </select>
+
+    <select id="countByUpdateTimeBetweenAndStatuses" resultType="long">
+        SELECT COUNT(*) FROM orders
+        WHERE update_time &gt;= #{startTime} AND update_time &lt; #{endTime}
+        AND `status` IN
+        <foreach collection="statuses" item="st" open="(" separator="," close=")">
+            #{st}
+        </foreach>
+    </select>
+
+    <select id="sumActualByUpdateTimeBetweenAndStatuses" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(actual_amount), 0) FROM orders
+        WHERE update_time &gt;= #{startTime} AND update_time &lt; #{endTime}
+        AND `status` IN
+        <foreach collection="statuses" item="st" open="(" separator="," close=")">
+            #{st}
+        </foreach>
+    </select>
+
+    <select id="countWhereStatusNotIn" resultType="long">
+        SELECT COUNT(*) FROM orders
+        WHERE `status` NOT IN
+        <foreach collection="statuses" item="st" open="(" separator="," close=")">
+            #{st}
+        </foreach>
+    </select>
+
+    <select id="selectCreateOrderTrendByDay" resultType="map">
+        SELECT DATE(create_time) AS `bucket` , COUNT(*) AS `cnt`
+        FROM orders
+        WHERE create_time &gt;= #{startTime} AND create_time &lt; #{endTime}
+        GROUP BY DATE(create_time)
+        ORDER BY `bucket`
+    </select>
+
+    <select id="selectCreateOrderTrendByHour" resultType="map">
+        SELECT DATE_FORMAT(create_time, '%Y-%m-%d %H:00:00') AS `bucket` , COUNT(*) AS `cnt`
+        FROM orders
+        WHERE create_time &gt;= #{startTime} AND create_time &lt; #{endTime}
+        GROUP BY DATE_FORMAT(create_time, '%Y-%m-%d %H:00:00')
+        ORDER BY `bucket`
+    </select>
+
+    <select id="selectRevenueTrendByUpdateDay" resultType="map">
+        SELECT DATE(update_time) AS `bucket` , COALESCE(SUM(actual_amount), 0) AS `revenue`
+        FROM orders
+        WHERE update_time &gt;= #{startTime} AND update_time &lt; #{endTime}
+        AND `status` IN ('delivered', 'completed')
+        GROUP BY DATE(update_time)
+        ORDER BY `bucket`
+    </select>
+
+    <select id="sumActualByCreateTimeBetweenAndStatuses" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(actual_amount), 0) FROM orders
+        WHERE create_time &gt;= #{startTime} AND create_time &lt; #{endTime}
+        AND `status` IN
+        <foreach collection="statuses" item="st" open="(" separator="," close=")">
+            #{st}
+        </foreach>
+    </select>
+
+    <select id="countDistinctUsersByCreateTimeBetween" resultType="long">
+        SELECT COUNT(DISTINCT user_id) FROM orders
+        WHERE create_time &gt;= #{startTime} AND create_time &lt; #{endTime}
+    </select>
+
+    <select id="countByUserId" resultType="long">
+        SELECT COUNT(*) FROM orders WHERE user_id = #{userId}
+    </select>
+
+    <select id="selectOrderCountGroupByStatusForUser" resultType="map">
+        SELECT `status` AS s, COUNT(*) AS c FROM orders
+        WHERE user_id = #{userId}
+        GROUP BY `status`
+    </select>
+
+    <select id="sumActualByCourierCreateTimeAndStatus" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(actual_amount), 0) FROM orders
+        WHERE courier_id = #{courierId}
+        AND create_time &gt;= #{startTime} AND create_time &lt;= #{endTime}
+        AND `status` = #{status}
+    </select>
+
+    <select id="sumActualByCourierUpdateTimeAndStatus" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(actual_amount), 0) FROM orders
+        WHERE courier_id = #{courierId}
+        AND update_time &gt;= #{startTime} AND update_time &lt;= #{endTime}
+        AND `status` = #{status}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO orders (order_no, user_id, 
+            goods_type_id, goods_description, goods_weight,
+            status, order_type, total_amount, actual_amount, pay_type, create_time, update_time)
+        VALUES (#{orderNo}, #{userId}, 
+            #{goodsTypeId}, #{goodsDescription}, #{goodsWeight},
+            #{status}, #{orderType}, #{totalAmount}, #{actualAmount}, #{payType}, NOW(), NOW())
+    </insert>
+
+    <update id="updateStatus">
+        UPDATE orders SET status = #{status}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="updateActualAmount">
+        UPDATE orders SET actual_amount = #{actualAmount}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="assignCourier">
+        UPDATE orders SET courier_id = #{courierId}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="updateDispatch">
+        UPDATE orders
+        SET courier_id = #{courierId}, dispatch_type = #{dispatchType},
+            dispatch_time = NOW(), update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="markException">
+        UPDATE orders 
+        SET is_exception = 1, exception_type = #{exceptionType}, update_time = NOW() 
+        WHERE id = #{id}
+    </update>
+
+    <update id="clearExceptionFlag">
+        UPDATE orders
+        SET is_exception = 0, exception_type = NULL, update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="clearCourier">
+        UPDATE orders
+        SET courier_id = NULL, dispatch_type = NULL, update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+</mapper>

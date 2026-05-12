@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.logistics.api.mapper.CourierReviewMapper">
+
+    <resultMap id="BaseResultMap" type="com.logistics.api.model.CourierReview">
+        <id property="id" column="id"/>
+        <result property="courierId" column="courier_id"/>
+        <result property="orderId" column="order_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="rating" column="rating"/>
+        <result property="content" column="content"/>
+        <result property="tags" column="tags"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, courier_id, order_id, user_id, rating, content, tags, create_time
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO courier_reviews 
+        (courier_id, order_id, user_id, rating, content, tags, create_time)
+        VALUES 
+        (#{courierId}, #{orderId}, #{userId}, #{rating}, #{content}, #{tags}, NOW())
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> 
+        FROM courier_reviews 
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByCourierId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> 
+        FROM courier_reviews 
+        WHERE courier_id = #{courierId}
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectByOrderId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> 
+        FROM courier_reviews 
+        WHERE order_id = #{orderId}
+        LIMIT 1
+    </select>
+
+    <select id="selectByOrderIdAndUserId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> 
+        FROM courier_reviews 
+        WHERE order_id = #{orderId} AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="selectAverageRatingByCourierId" resultType="java.lang.Double">
+        SELECT AVG(rating) 
+        FROM courier_reviews 
+        WHERE courier_id = #{courierId}
+    </select>
+
+    <select id="selectCountByCourierId" resultType="java.lang.Integer">
+        SELECT COUNT(*) 
+        FROM courier_reviews 
+        WHERE courier_id = #{courierId}
+    </select>
+
+    <select id="selectRatingDistribution" resultType="java.util.HashMap">
+        SELECT rating as rating, COUNT(*) as count
+        FROM courier_reviews 
+        WHERE courier_id = #{courierId}
+        GROUP BY rating
+        ORDER BY rating DESC
+    </select>
+
+</mapper>

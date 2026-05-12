@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.logistics.api.mapper.OrderTrackMapper">
+
+    <resultMap id="BaseResultMap" type="com.logistics.api.model.OrderTrack">
+        <id property="id" column="id"/>
+        <result property="orderId" column="order_id"/>
+        <result property="courierId" column="courier_id"/>
+        <result property="latitude" column="latitude"/>
+        <result property="longitude" column="longitude"/>
+        <result property="accuracy" column="accuracy"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, order_id, courier_id, latitude, longitude, accuracy, create_time
+    </sql>
+
+    <select id="selectByOrderId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM order_tracks WHERE order_id = #{orderId} ORDER BY create_time ASC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO order_tracks (order_id, courier_id, latitude, longitude, accuracy, create_time)
+        VALUES (#{orderId}, #{courierId}, #{latitude}, #{longitude}, #{accuracy}, NOW())
+    </insert>
+
+    <insert id="insertBatch">
+        INSERT INTO order_tracks (order_id, courier_id, latitude, longitude, accuracy, create_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.orderId}, #{item.courierId}, #{item.latitude}, #{item.longitude}, #{item.accuracy}, NOW())
+        </foreach>
+    </insert>
+
+</mapper>
